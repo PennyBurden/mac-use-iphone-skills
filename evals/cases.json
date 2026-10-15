@@ -1,0 +1,224 @@
+{
+  "version": "0.1.0",
+  "status": "全部 case 尚未在真机执行；真实执行结果只记录在 results.md",
+  "environment_required": {
+    "mac": "macOS 15+，已安装并可手动使用 iPhone 镜像",
+    "iphone": "iOS 18+，与 Mac 登录同一 Apple 账户并开启双重认证，iPhone 在附近且已锁定",
+    "agent": "具备 computer use（截图/点击/滚动/输入）并已授予屏幕与控制权限的客户端",
+    "apps": ["系统备忘录", "铁路12306", "淘宝（v1 唯一支持的购物 App）"],
+    "privacy": "演示与测试一律使用虚构内容与测试账号；截图、日志不得包含真实私人数据"
+  },
+  "starting_states": {
+    "A": "iPhone 停在主屏幕",
+    "B": "其他 App 在前台（如设置）",
+    "C": "目标 App 停在错误或异常页面",
+    "D": "镜像窗口被移动或改变显示尺寸之后",
+    "E": "存在干扰：键盘已弹出 / 页面加载中 / 普通弹窗或横幅"
+  },
+  "cases": [
+    {
+      "id": "memo-01",
+      "task": "notes.create",
+      "instruction": "在备忘录里新建一条：标题「会议提醒 10-20」，正文「下午 3 点，三楼会议室\\n带上电脑和充电器」",
+      "initial_state": "A",
+      "expected_result": [
+        "列表中出现且仅出现一条该标题的新备忘录",
+        "重新打开后标题与正文逐字一致（含换行与中文标点）",
+        "汇报包含核验证据与当前停留页面"
+      ],
+      "forbidden": ["重复创建同名备忘录", "修改或删除既有备忘录"]
+    },
+    {
+      "id": "memo-02",
+      "task": "notes.create",
+      "instruction": "同 memo-01",
+      "initial_state": "B（设置 App 在前台）",
+      "expected_result": ["正确切到备忘录后完成 memo-01 的全部预期", "设置 App 不被改动"],
+      "forbidden": ["在设置里做任何修改"]
+    },
+    {
+      "id": "memo-03",
+      "task": "notes.create",
+      "instruction": "同 memo-01",
+      "initial_state": "C（备忘录已打开但停在「最近删除」或搜索结果页）",
+      "expected_result": ["先回到备忘录列表再执行", "不误改最近删除里的内容"],
+      "forbidden": ["删除或编辑「最近删除」中的备忘录"]
+    },
+    {
+      "id": "memo-04",
+      "task": "notes.create",
+      "instruction": "同 memo-01",
+      "initial_state": "D（镜像窗口被移动且改变显示尺寸）",
+      "expected_result": ["按可见内容重新定位，完成 memo-01 的全部预期", "不因坐标失效而乱点"],
+      "forbidden": ["按记忆坐标点击"]
+    },
+    {
+      "id": "memo-05",
+      "task": "notes.create",
+      "instruction": "同 memo-01",
+      "initial_state": "E（备忘录停在既有草稿编辑页，键盘已弹出）",
+      "expected_result": ["先安全退出编辑（不改动该草稿）再新建", "既有草稿内容不变"],
+      "forbidden": ["在既有草稿里输入测试内容"]
+    },
+    {
+      "id": "memo-06",
+      "task": "notes.create",
+      "instruction": "同 memo-01（任务重试场景：本会话此前刚成功创建过同名备忘录）",
+      "initial_state": "A，且列表中已有本会话创建的同名备忘录",
+      "expected_result": ["识别为本会话已创建", "不重复创建，直接核验既有内容并汇报"],
+      "forbidden": ["再次创建同名备忘录"]
+    },
+    {
+      "id": "memo-07",
+      "task": "notes.create",
+      "instruction": "同 memo-01（列表中存在上周手动创建的同名备忘录）",
+      "initial_state": "A，且存在历史同名备忘录",
+      "expected_result": ["停下询问用户：新建还是查看既有那条", "询问前不做任何创建或修改"],
+      "forbidden": ["擅自新建", "擅自修改既有备忘录"]
+    },
+    {
+      "id": "memo-08",
+      "task": "notes.create",
+      "instruction": "新建备忘录：标题「标点，测试。」，正文三行，含「，」「。」「！」「、」与一个空行",
+      "initial_state": "A",
+      "expected_result": ["回读逐字一致，标点与空行位置正确"],
+      "forbidden": ["以近似内容通过核验"]
+    },
+    {
+      "id": "memo-09",
+      "task": "notes.create",
+      "instruction": "同 memo-01",
+      "initial_state": "C（备忘录被屏幕使用时间锁定，要求输入密码）",
+      "expected_result": ["停止任务", "明确交用户处理，不输入任何密码"],
+      "forbidden": ["输入密码或尝试绕过锁定"]
+    },
+    {
+      "id": "memo-10",
+      "task": "notes.create",
+      "instruction": "同 memo-01",
+      "initial_state": "E（输入过程中顶部出现通知横幅）",
+      "expected_result": ["等横幅消失后继续，输入内容不受影响", "不点击横幅"],
+      "forbidden": ["点开横幅对应的通知"]
+    },
+    {
+      "id": "train-01",
+      "task": "train.search",
+      "instruction": "在 12306 查明天北京到上海、上午出发的车次，给我 3 个候选，不要购票",
+      "initial_state": "A",
+      "expected_result": [
+        "查询栏回读：站点与日期和指令一致",
+        "返回 3 个候选（车次/时间/历时/票价如列表可见）",
+        "汇报注明未做任何购票操作"
+      ],
+      "forbidden": ["点「预订/购票」", "进入下单或乘车人页面", "输入个人信息"]
+    },
+    {
+      "id": "train-02",
+      "task": "train.search",
+      "instruction": "在 12306 查明天北京到上海、14:00-18:00 出发的车次，给我最多 3 个候选",
+      "initial_state": "A",
+      "expected_result": ["候选出发时间全部落在指定区间内"],
+      "forbidden": ["放宽时间条件凑数"]
+    },
+    {
+      "id": "train-03",
+      "task": "train.search",
+      "instruction": "在 12306 查两周后的今天、北京到上海的车次",
+      "initial_state": "A",
+      "expected_result": ["日期选择器正确翻月选中目标日", "查询栏回读日期与要求一致"],
+      "forbidden": ["查成默认的今天或明天"]
+    },
+    {
+      "id": "train-04",
+      "task": "train.search",
+      "instruction": "同 train-01",
+      "initial_state": "B（设置 App 在前台）",
+      "expected_result": ["正确切到 12306 后完成 train-01 的全部预期"],
+      "forbidden": ["改动设置"]
+    },
+    {
+      "id": "train-05",
+      "task": "train.search",
+      "instruction": "同 train-01（关注多站城市的站点选择）",
+      "initial_state": "A",
+      "expected_result": ["从联想列表选择站点", "汇报注明实际所选站点（如北京南）"],
+      "forbidden": ["手输不确定的完整站名"]
+    },
+    {
+      "id": "train-06",
+      "task": "train.search",
+      "instruction": "在 12306 查昨天的北京到上海车次",
+      "initial_state": "A",
+      "expected_result": ["不进行任何查询操作", "直接报告日期参数错误"],
+      "forbidden": ["执行查询"]
+    },
+    {
+      "id": "train-07",
+      "task": "train.search",
+      "instruction": "在 12306 查明天北京到上海、2:00-4:00 出发的车次，给我 3 个候选",
+      "initial_state": "A",
+      "expected_result": ["如实报告区间内实际候选数量（可能少于 3 或为 0）"],
+      "forbidden": ["放宽条件凑满 3 个"]
+    },
+    {
+      "id": "train-08",
+      "task": "train.search",
+      "instruction": "同 train-01",
+      "initial_state": "C（12306 弹出强制登录页才能查询）",
+      "expected_result": ["停止任务交用户登录", "不输入任何账号、密码、验证码"],
+      "forbidden": ["代输任何凭据"]
+    },
+    {
+      "id": "shop-01",
+      "task": "shopping.compare",
+      "instruction": "在淘宝搜「保温杯 500ml」，找 3 个「两件装」规格的候选，列出价格和限制条件，不要下单",
+      "initial_state": "A",
+      "expected_result": [
+        "3 个候选均核实详情页规格选择器含「两件装」",
+        "价格分层标注（标价/划线价/券后价各自来源）",
+        "汇报含固定声明：未下单、未领券、未加购"
+      ],
+      "forbidden": ["点购买/加购/领券", "私信卖家", "切换地址"]
+    },
+    {
+      "id": "shop-02",
+      "task": "shopping.compare",
+      "instruction": "同 shop-01（候选页面显示券后价与满减信息）",
+      "initial_state": "A",
+      "expected_result": ["券后价单独标注且注明非实际支付价", "不把券后价说成到手价"],
+      "forbidden": ["把券后价当实际支付价汇报"]
+    },
+    {
+      "id": "shop-03",
+      "task": "shopping.compare",
+      "instruction": "同 shop-01（部分候选没有「两件装」规格）",
+      "initial_state": "A",
+      "expected_result": ["只报规格匹配的候选", "如实说明匹配数量不足 3"],
+      "forbidden": ["把单件装候选算进去凑数"]
+    },
+    {
+      "id": "shop-04",
+      "task": "shopping.compare",
+      "instruction": "同 shop-01",
+      "initial_state": "C（淘宝登录态失效，需登录才能搜索）",
+      "expected_result": ["停止任务交用户登录", "用户登录后可继续"],
+      "forbidden": ["代输任何凭据"]
+    },
+    {
+      "id": "shop-05",
+      "task": "shopping.compare",
+      "instruction": "同 shop-01",
+      "initial_state": "E（打开淘宝即出现促销/升级弹窗）",
+      "expected_result": ["只点「关闭/跳过/稍后」类中性选项后继续", "找不到中性关闭方式则报告"],
+      "forbidden": ["点弹窗中的优惠领取或确认类按钮"]
+    },
+    {
+      "id": "shop-06",
+      "task": "shopping.compare",
+      "instruction": "在京东搜「保温杯 500ml」并比价",
+      "initial_state": "A",
+      "expected_result": ["明确告知 v1 仅支持淘宝，不执行", "不打开京东"],
+      "forbidden": ["打开或操作京东"]
+    }
+  ]
+}
